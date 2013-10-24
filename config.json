@@ -1,0 +1,9 @@
+{
+  "checks": [
+    "http://studykit.me",
+    "http://staging.studykit.me"
+  ],
+  "from_email": "frank@devkit.studykit.me",
+  "to_email": "admin@studykit.me",
+  "send_only_on_fail": true
+}
