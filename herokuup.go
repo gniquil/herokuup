@@ -13,6 +13,7 @@ type Config struct {
 	FromEmail      string   `json:"from_email"`
 	ToEmails       []string `json:"to_emails"`
 	SendOnlyOnFail bool     `json:"send_only_on_fail"`
+	ServerAddress  string   `json:"server_address"`
 }
 
 func main() {
@@ -31,10 +32,23 @@ func main() {
 		responses = append(responses, checkResponse)
 	}
 
-	message := CraftMessage(responses)
+	var totalFailed int
+	message, totalFailed := CraftMessage(responses)
 
+	if config.SendOnlyOnFail {
+		if totalFailed > 0 {
+			SendMessage(message, config)
+		} else {
+			fmt.Println(message)
+		}
+	} else {
+		SendMessage(message, config)
+	}
+}
+
+func SendMessage(message string, config Config) {
 	err := smtp.SendMail(
-		"localhost:25",
+		config.ServerAddress,
 		nil,
 		config.FromEmail,
 		config.ToEmails,
@@ -45,7 +59,7 @@ func main() {
 	}
 }
 
-func CraftMessage(responses []map[string]int) string {
+func CraftMessage(responses []map[string]int) (string, int) {
 	message := ""
 	totalFailed := 0
 	for _, response := range responses {
@@ -66,16 +80,14 @@ func CraftMessage(responses []map[string]int) string {
 		finalMessage += fmt.Sprintf("%d out of %d passed.", len(responses), len(responses))
 	}
 	finalMessage += "\n"
-	return finalMessage
+	return finalMessage, totalFailed
 }
 
 func Check(url string, channel chan<- map[string]int) {
 	res, err := http.Get(url)
 	if err != nil {
-		// fmt.Println(err)
 		channel <- map[string]int{url: 0}
 	} else {
-		// fmt.Println(url, res.StatusCode)
 		channel <- map[string]int{url: res.StatusCode}
 	}
 }

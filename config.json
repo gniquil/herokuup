@@ -4,6 +4,9 @@
     "http://example2.herokuapp.com"
   ],
   "from_email": "admin@example.com",
-  "to_email": "admin@example.com",
-  "send_only_on_fail": true
+  "to_email": [
+    "admin@example.com"
+  ],
+  "send_only_on_fail": false,
+  "server_address": "localhost:25"
 }
