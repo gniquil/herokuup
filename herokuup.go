@@ -26,9 +26,8 @@ func main() {
 	totalFailed := 0
 	for i := 0; i < len(config.Checks); i++ {
 		checkResponse := <-channel
-		for key, val := range checkResponse {
-			if val == 200 {
-				fmt.Println(key, val)
+		for _, val := range checkResponse {
+			if val != 200 {
 				totalFailed++
 			}
 		}
@@ -39,10 +38,11 @@ func main() {
 
 func Check(url string, channel chan<- map[string]int) {
 	res, err := http.Get(url)
-	// fmt.Printf("%s returned %d\n", url, res.StatusCode)
 	if err != nil {
+		fmt.Println(err)
 		channel <- map[string]int{url: 0}
 	} else {
+		fmt.Println(url, res.StatusCode)
 		channel <- map[string]int{url: res.StatusCode}
 	}
 }

@@ -1,9 +1,9 @@
 {
   "checks": [
-    "http://studykit.me",
-    "http://staging.studykit.me"
+    "http://example.herokuapp.com",
+    "http://example2.herokuapp.com"
   ],
-  "from_email": "frank@devkit.studykit.me",
-  "to_email": "admin@studykit.me",
+  "from_email": "admin@example.com",
+  "to_email": "admin@example.com",
   "send_only_on_fail": true
 }
