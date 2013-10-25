@@ -4,7 +4,7 @@ This is a really simple program used to ping heroku to keep it alive. If any of 
 
 ```json
 {
-  "url": [
+  "urls": [
     "http://example.herokuapp.com",
     "http://example2.herokuapp.com"
   ],
