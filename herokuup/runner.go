@@ -9,11 +9,11 @@ import (
 )
 
 type RunnerConfig struct {
-	Urls       []string `json:"checks"`
-	From       string   `json:"from_email"`
-	Tos        []string `json:"to_emails"`
-	Sendonfail bool     `json:"send_only_on_fail"`
-	Serveraddr string   `json:"server_address"`
+	Urls       []string `json:"urls"`
+	From       string   `json:"from"`
+	Tos        []string `json:"tos"`
+	Sendonfail bool     `json:"sendonfail"`
+	Serveraddr string   `json:"serveraddr"`
 }
 
 type Runner struct {
@@ -29,10 +29,9 @@ func NewRunner(path string) *Runner {
 }
 
 func (runner *Runner) Run() {
-	fmt.Println(runner.config)
+	fmt.Println("Running...")
 
 	resChan := make(chan Response)
-	// allResponses := make([]Response, 0)
 
 	for _, url := range runner.config.Urls {
 		go runner.checkUrl(url, resChan)
@@ -40,6 +39,7 @@ func (runner *Runner) Run() {
 
 	for {
 		if len(runner.responses) == len(runner.config.Urls) {
+			fmt.Println("All url checks came back...")
 			break
 		}
 
@@ -75,7 +75,7 @@ func (runner *Runner) parseConfig(path string) {
 
 func (runner *Runner) checkUrl(url string, resChan chan<- Response) {
 	res, err := http.Get(url)
-	fmt.Println(url, res.StatusCode)
+	fmt.Printf("%s -> %d\n", url, res.StatusCode)
 	if err != nil {
 		resChan <- Response{url: url, status: 0}
 	} else {

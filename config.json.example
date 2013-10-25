@@ -1,12 +1,12 @@
 {
-  "checks": [
+  "url": [
     "http://example.herokuapp.com",
     "http://example2.herokuapp.com"
   ],
-  "from_email": "admin@example.com",
-  "to_email": [
+  "from": "admin@example.com",
+  "tos": [
     "admin@example.com"
   ],
-  "send_only_on_fail": false,
-  "server_address": "localhost:25"
+  "sendonfail": false,
+  "serveraddr": "localhost:25"
 }
