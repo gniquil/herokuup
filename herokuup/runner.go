@@ -1,14 +1,11 @@
 package herokuup
 
 import (
-	"encoding/json"
 	"fmt"
 	"net/http"
-	"net/smtp"
-	"os"
 )
 
-type RunnerConfig struct {
+type Config struct {
 	Urls       []string `json:"urls"`
 	From       string   `json:"from"`
 	Tos        []string `json:"tos"`
@@ -16,107 +13,49 @@ type RunnerConfig struct {
 	Serveraddr string   `json:"serveraddr"`
 }
 
-type Runner struct {
-	config      *RunnerConfig
-	responses   []Response
-	totalFailed int
+type Response struct {
+	url    string
+	status int
 }
 
-func NewRunner(path string) *Runner {
-	runner := new(Runner)
-	runner.parseConfig(path)
-	return runner
+func checkUrl(url string, resChan chan<- Response) {
+	res, err := http.Get(url)
+
+	var status int // zero'd to 0
+	if err == nil {
+		status = res.StatusCode
+	}
+
+	fmt.Printf("%s -> %d\n", url, status)
+
+	resChan <- Response{url: url, status: status}
 }
 
-func (runner *Runner) Run() {
-	fmt.Println("Running...")
+func Run(path string) {
+	fmt.Println("Loading config...")
+
+	config := loadConfig(path)
+
+	fmt.Println("Setting up...")
+
+	var responses []Response
 
 	resChan := make(chan Response)
 
-	for _, url := range runner.config.Urls {
-		go runner.checkUrl(url, resChan)
+	fmt.Println("Sending out gophers...")
+
+	for _, url := range config.Urls {
+		go checkUrl(url, resChan)
 	}
 
-	for {
-		if len(runner.responses) == len(runner.config.Urls) {
-			fmt.Println("All url checks came back...")
-			break
-		}
+	fmt.Println("Listening for responses...")
 
-		select {
-		case res := <-resChan:
-			runner.responses = append(runner.responses, res)
-			if res.failed() {
-				runner.totalFailed++
-			}
-		}
+	for len(responses) < len(config.Urls) {
+		res := <-resChan
+		responses = append(responses, res)
 	}
 
-	runner.sendMessage(runner.craftMessage())
-}
+	fmt.Println("Generating messages...")
 
-func (runner *Runner) parseConfig(path string) {
-	config := new(RunnerConfig)
-
-	file, err := os.Open(path)
-	if err != nil {
-		panic(err)
-	}
-	defer file.Close()
-
-	decoder := json.NewDecoder(file)
-
-	if err := decoder.Decode(&config); err != nil {
-		panic(err)
-	}
-
-	runner.config = config
-}
-
-func (runner *Runner) checkUrl(url string, resChan chan<- Response) {
-	res, err := http.Get(url)
-	fmt.Printf("%s -> %d\n", url, res.StatusCode)
-	if err != nil {
-		resChan <- Response{url: url, status: 0}
-	} else {
-		resChan <- Response{url: url, status: res.StatusCode}
-	}
-}
-
-func (runner *Runner) craftMessage() string {
-	message := ""
-	for _, response := range runner.responses {
-		if response.failed() {
-			message += fmt.Sprintf("%s returned status code %d\n", response.url, response.status)
-		}
-	}
-	var finalMessage string
-	if runner.totalFailed > 0 {
-		finalMessage = fmt.Sprintf("Subject: [herokuup] %d urls are down!\n\n", runner.totalFailed)
-		finalMessage += message + "\n"
-		finalMessage += fmt.Sprintf("%d out of %d failed.", runner.totalFailed, len(runner.responses))
-	} else {
-		finalMessage = "Subject: [herokuup] All urls are up!\n\n"
-		finalMessage += fmt.Sprintf("%d out of %d passed.", len(runner.responses), len(runner.responses))
-	}
-	finalMessage += "\n"
-	return finalMessage
-}
-
-func (runner *Runner) sendMessage(message string) {
-	if runner.config.Sendonfail && runner.totalFailed == 0 {
-		fmt.Println(message)
-		return
-	}
-
-	err := smtp.SendMail(
-		runner.config.Serveraddr,
-		nil,
-		runner.config.From,
-		runner.config.Tos,
-		[]byte(message),
-	)
-	if err != nil {
-		panic(err)
-	}
+	sendMessage(config, responses)
 }

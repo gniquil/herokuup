@@ -6,5 +6,5 @@ import (
 )
 
 func main() {
-	herokuup.NewRunner(os.Args[1]).Run()
+	herokuup.Run(os.Args[1])
 }
